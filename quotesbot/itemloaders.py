@@ -1,5 +1,5 @@
 import scrapy
-from items import QuotesbotItem
+from items import QuotesbotItem,ArticleItem
 from scrapy.loader import ItemLoader
 from scrapy.loader.processors import TakeFirst, MapCompose, Join, Compose
 
@@ -9,3 +9,6 @@ class QuotesLoader(ItemLoader):
     text_in = MapCompose()
     author_in = MapCompose()
     tags_in = MapCompose()
+
+class ArticleLoader(ItemLoader):
+    default_output_processor = TakeFirst()

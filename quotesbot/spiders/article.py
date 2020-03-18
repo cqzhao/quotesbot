@@ -1,15 +1,28 @@
 # -*- coding: utf-8 -*-
 import scrapy
-from quotesbot.items import QuotesbotItem
-from quotesbot.itemloaders import QuotesLoader
+from quotesbot.items import ArticleItem
+from quotesbot.itemloaders import ArticleLoader
 from quotesbot.utils import logger
+from MongoHelper import MongoHelper 
 
 
-class ToScrapeSpiderXPath(scrapy.Spider):
-    name = 'toscrape-xpath'
-    start_urls = [
-        'http://quotes.toscrape.com/',
-    ]
+class ArticleSpider(scrapy.Spider):
+    name = 'AEST'
+    def __init__(self):
+        super.__init__()
+        self.sql = MongoHelper(self.name)
+
+    def start_requests(self):
+        # base url for Atomic Energy Science and Technology
+        URL_AEST = "http://kns.cnki.net/kcms/detail/detail.aspx?dbcode=CJFD&filename=YZJS"
+        volume = ["01","02","03","04","05","06","07","08","09","10","11","12","S1","Z1","S2","Z2"]
+        
+        urls = [
+            'http://quotes.toscrape.com/page/1/',
+            'http://quotes.toscrape.com/page/2/',
+        ]
+        for url in urls:
+            yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
         for quote in response.css("div.quote"):

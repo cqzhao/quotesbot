@@ -55,6 +55,14 @@ USER_AGENT_LIST = [
     "Mozilla/5.0 (X11; U; Linux x86_64; zh-CN; rv:1.9.2.10) Gecko/20100922 Ubuntu/10.10 (maverick) Firefox/3.6.10"
 ]
 
+# RETRY 
+# default
+# RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524, 408, 429] 
+RETRY_HTTP_CODES = [400, 500, 502, 503, 504, 522, 524, 408, 429] 
+RETRY_TIMES = 3
+# retry times with new proxy each time
+RETRY_PROXY_TIMES = 3
+RETRY_PROXY_HTTP_CODES = [400, 403, 500, 502, 503, 504, 522, 524, 408, 429] 
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = False
@@ -65,7 +73,7 @@ ROBOTSTXT_OBEY = False
 # Configure a delay for requests for the same website (default: 0)
 # See http://scrapy.readthedocs.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
-DOWNLOAD_DELAY = 5
+DOWNLOAD_DELAY = 0.5
 # The download delay setting will honor only one of:
 #CONCURRENT_REQUESTS_PER_DOMAIN = 16
 #CONCURRENT_REQUESTS_PER_IP = 16
@@ -100,6 +108,7 @@ DOWNLOADER_MIDDLEWARES = {
 #    'quotesbot.middlewares.MyCustomDownloaderMiddleware': 543,
    'quotesbot.middlewares.RandomProxyMiddleware': 543,
    'quotesbot.middlewares.RandomUserAgentMiddleware': 544,
+   'quotesbot.middlewares.RetryWithProxyMiddleware': 545,
 }
 
 # Enable or disable extensions
@@ -115,22 +124,23 @@ ITEM_PIPELINES = {
 }
 
 # Mongo Database
-MONGO_URI = "mongodb://localhost:27017/"
+# MONGO_URI = "mongodb://localhost:27017/"
+MONGO_URI = "mongodb://192.168.2.164:27020/"
 ## database name
-MONGO_DATABASE = "quotes"
+MONGO_DATABASE = "articles"
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See http://doc.scrapy.org/en/latest/topics/autothrottle.html
-#AUTOTHROTTLE_ENABLED = True
+AUTOTHROTTLE_ENABLED = True
 # The initial download delay
-#AUTOTHROTTLE_START_DELAY = 5
+AUTOTHROTTLE_START_DELAY = 5
 # The maximum download delay to be set in case of high latencies
-#AUTOTHROTTLE_MAX_DELAY = 60
+AUTOTHROTTLE_MAX_DELAY = 60
 # The average number of requests Scrapy should be sending in parallel to
 # each remote server
-#AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
+AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
 # Enable showing throttling stats for every response received:
-#AUTOTHROTTLE_DEBUG = False
+AUTOTHROTTLE_DEBUG = False
 
 # Enable and configure HTTP caching (disabled by default)
 # See http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html#httpcache-middleware-settings

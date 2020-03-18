@@ -69,6 +69,6 @@ def pickip(ips):
         return newip[random.randint(0,num-1)][0]
     else:
         return None
-
+ips = genip()
 if __name__ == "__main__":
     print(pickip(getip_from_gen()))

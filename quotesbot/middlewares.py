@@ -7,7 +7,10 @@
 
 from scrapy import signals
 import random
-from utils import logger,genip
+from utils import logger,ips
+from scrapy.downloadermiddlewares.retry import RetryMiddleware
+from scrapy.exceptions import NotConfigured
+from scrapy.utils.python import global_object_name
 
 
 
@@ -108,14 +111,14 @@ class TutorialDownloaderMiddleware(object):
 class RandomProxyMiddleware(object):
 
     def __init__(self):
-        self.__genip = genip()
+        pass
 
     @classmethod
     def from_crawler(cls,crawler):
         return cls()
 
     def process_request(self,request,spider):
-        _proxy = next(self.__genip)[0]
+        _proxy = next(ips)[0]
         proxy = _proxy['http'] if 'http' in _proxy.keys() else _proxy['https']
         request.meta['proxy'] = proxy
         return None
@@ -133,3 +136,51 @@ class RandomUserAgentMiddleware(object):
         # 验证 User-Agent 设置是否生效
         logger.info("headers ::> User-Agent = " + str(request.headers['User-Agent'], encoding="utf8"))
         return response
+
+class RetryWithProxyMiddleware(RetryMiddleware):
+    '''
+    if response is failed, retry with new proxy
+    '''
+    def __init__(self, settings):
+        if not settings.getbool('RETRY_ENABLED'):
+            raise NotConfigured
+        self.max_retry_times = settings.getint('RETRY_PROXY_TIMES')
+        self.retry_http_codes = set(int(x) for x in settings.getlist('RETRY_PROXY_HTTP_CODES'))
+        self.priority_adjust = settings.getint('RETRY_PRIORITY_ADJUST')
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(crawler.settings)
+
+    def _retry(self, request, reason, spider):
+        retries = request.meta.get('retry_proxy_times', 0) + 1
+
+        retry_times = self.max_retry_times
+
+        if 'max_retry_times' in request.meta:
+            retry_times = request.meta['max_retry_times']
+
+        stats = spider.crawler.stats
+        if retries <= retry_times:
+            logger.debug("RetryWithProxy: Retrying %(request)s (failed %(retries)d times): %(reason)s",
+                         {'request': request, 'retries': retries, 'reason': reason},
+                         extra={'spider': spider})
+            retryreq = request.copy()
+            retryreq.meta['retry_proxy_times'] = retries
+            retryreq.dont_filter = True
+            retryreq.priority = request.priority + self.priority_adjust
+
+            if isinstance(reason, Exception):
+                reason = global_object_name(reason.__class__)
+
+            stats.inc_value('retry/count')
+            stats.inc_value('retry/reason_count/%s' % reason)
+            _proxy = next(ips)[0]
+            proxy = _proxy['http'] if 'http' in _proxy.keys() else _proxy['https']
+            retryreq.meta['proxy'] = proxy
+            return retryreq
+        else:
+            stats.inc_value('retry/max_reached')
+            logger.error("Gave up retrying %(request)s (failed %(retries)d times): %(reason)s",
+                         {'request': request, 'retries': retries, 'reason': reason},
+                         extra={'spider': spider})
