@@ -25,6 +25,22 @@ class ArticleSpider(scrapy.Spider):
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
+        '''
+        url = scrapy.Field()
+        title = xpath(//h2[@class='title']/text()).get()
+        authors = xpath(//div[@class='author']//a/text())
+        abstract = xpath(//div[@class='wxBaseinfo']//span[@id='ChDivSummary']/text())
+        journal_name_ch = scrapy.Field()
+        journal_name_en = scrapy.Field()
+        volume = scrapy.Field()
+        keywords = //div[@class='wxBaseinfo']//p[2]/a/text()
+        fenleihao = //div[@class='wxBaseinfo']//p[3]/text()
+        found = scrapy.Field()
+        download_num = //div[@class='info']/div[@class='total']/span[1]/b/text()
+        pages =  //div[@class='info']/div[@class='total']/span[3]/b/text()
+        references = //div[@class='essayBox']//li//a/text()
+        next_link 
+        '''
         for quote in response.css("div.quote"):
             q = QuotesLoader(item=QuotesbotItem(),selector=quote)
             q.add_xpath('text','./span[@class="text"]/text()')

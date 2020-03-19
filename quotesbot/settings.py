@@ -106,9 +106,9 @@ DEFAULT_REQUEST_HEADERS = {
 # See http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
 #    'quotesbot.middlewares.MyCustomDownloaderMiddleware': 543,
-   'quotesbot.middlewares.RandomProxyMiddleware': 543,
+#    'quotesbot.middlewares.RandomProxyMiddleware': 543,
    'quotesbot.middlewares.RandomUserAgentMiddleware': 544,
-   'quotesbot.middlewares.RetryWithProxyMiddleware': 545,
+#    'quotesbot.middlewares.RetryWithProxyMiddleware': 545,
 }
 
 # Enable or disable extensions
