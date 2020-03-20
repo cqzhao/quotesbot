@@ -3,6 +3,11 @@ from items import QuotesbotItem,ArticleItem
 from scrapy.loader import ItemLoader
 from scrapy.loader.processors import TakeFirst, MapCompose, Join, Compose
 
+def clearnstrip(value:list):
+    ref = list(map(lambda x:x.strip(),value))
+    ref = list(map(lambda x:x.replace("&nbsp","").replace("\r\n",""),ref))
+    return ref
+
 class QuotesLoader(ItemLoader):
     default_output_processor = TakeFirst()
 
@@ -12,3 +17,9 @@ class QuotesLoader(ItemLoader):
 
 class ArticleLoader(ItemLoader):
     default_output_processor = TakeFirst()
+    authors_out = MapCompose()
+    download_num_in = MapCompose(int)
+    # keywords_out = MapCompose(clearnstrip)
+    keywords_out = MapCompose()
+    pages_in = MapCompose(int)
+

@@ -79,7 +79,7 @@ DOWNLOAD_DELAY = 0.5
 #CONCURRENT_REQUESTS_PER_IP = 16
 
 # Disable cookies (enabled by default)
-#COOKIES_ENABLED = False
+COOKIES_ENABLED = False
 
 # Disable Telnet Console (enabled by default)
 #TELNETCONSOLE_ENABLED = False
@@ -108,7 +108,7 @@ DOWNLOADER_MIDDLEWARES = {
 #    'quotesbot.middlewares.MyCustomDownloaderMiddleware': 543,
 #    'quotesbot.middlewares.RandomProxyMiddleware': 543,
    'quotesbot.middlewares.RandomUserAgentMiddleware': 544,
-#    'quotesbot.middlewares.RetryWithProxyMiddleware': 545,
+   'quotesbot.middlewares.RetryWithProxyMiddleware': 545,
 }
 
 # Enable or disable extensions
@@ -124,8 +124,8 @@ ITEM_PIPELINES = {
 }
 
 # Mongo Database
-# MONGO_URI = "mongodb://localhost:27017/"
-MONGO_URI = "mongodb://192.168.2.164:27020/"
+MONGO_URI = "mongodb://localhost:27017/"
+# MONGO_URI = "mongodb://192.168.2.164:27020/"
 ## database name
 MONGO_DATABASE = "articles"
 

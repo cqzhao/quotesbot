@@ -30,6 +30,6 @@ class QuotesbotPipeline(object):
         self.client.close()
 
     def process_item(self, item, spider):
-        logger.info(f"Inserting new item into database, author is {item['author']}")
+        logger.info(f"Inserting file {item['filename']} into database")
         self.db[self.collection_name].insert_one(dict(item))
         return item
