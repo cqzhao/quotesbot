@@ -9,6 +9,7 @@
 #     http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html
 #     http://scrapy.readthedocs.org/en/latest/topics/spider-middleware.html
 
+from shutil import which
 BOT_NAME = 'quotesbot'
 
 SPIDER_MODULES = ['quotesbot.spiders']
@@ -106,9 +107,10 @@ DEFAULT_REQUEST_HEADERS = {
 # See http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
 #    'quotesbot.middlewares.MyCustomDownloaderMiddleware': 543,
-#    'quotesbot.middlewares.RandomProxyMiddleware': 543,
+   'quotesbot.middlewares.RandomProxyMiddleware': 543,
    'quotesbot.middlewares.RandomUserAgentMiddleware': 544,
    'quotesbot.middlewares.RetryWithProxyMiddleware': 545,
+#    'scrapy_selenium.SeleniumMiddleware': 800
 }
 
 # Enable or disable extensions
@@ -120,12 +122,12 @@ DOWNLOADER_MIDDLEWARES = {
 # Configure item pipelines
 # See http://scrapy.readthedocs.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-   'quotesbot.pipelines.QuotesbotPipeline': 300,
+   'quotesbot.pipelines.ArticlesPipeline': 300,
 }
 
 # Mongo Database
-MONGO_URI = "mongodb://localhost:27017/"
-# MONGO_URI = "mongodb://192.168.2.164:27020/"
+# MONGO_URI = "mongodb://localhost:27017/"
+MONGO_URI = "mongodb://192.168.2.164:27020/"
 ## database name
 MONGO_DATABASE = "articles"
 
@@ -152,3 +154,22 @@ AUTOTHROTTLE_DEBUG = False
 
 # log file
 LOG_FILE = "log.log"
+
+# selenium settings 
+SELENIUM_DRIVER_NAME = 'firefox'
+SELENIUM_DRIVER_EXECUTABLE_PATH = which('geckodriver')
+SELENIUM_DRIVER_ARGUMENTS=['-headless']  # '--headless' if using chrome instead of firefox
+
+
+JOURNALCODE = {
+    "原子能科学与技术" : "YZJS",
+    "核动力工程" : "HDLG",
+    "核技术": "HJSU",
+    "核安全": "HAQY",
+    "辐射防护":"FSFH",
+    "核聚变与等离子体物理":"HJBY",
+    "核科学与工程":"HKXY",
+    "辐射防护通讯":"DEFE",
+    "中国核电":"ZGHD",
+    "核电子学与探测技术":"HERE",
+}

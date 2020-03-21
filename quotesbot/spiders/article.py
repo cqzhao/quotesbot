@@ -54,6 +54,7 @@ class ArticleSpider(scrapy.Spider):
         aloader.add_value("url",response.url)
         aloader.add_value("journal_name_ch","原子能科学技术")
         aloader.add_value("journal_name_en","Atomic Energy Science and Technology")
+        aloader.add_value("short_journal_name_en","AEST")
         aloader.add_xpath("title","//h2[@class='title']/text()")
         aloader.add_xpath("authors","//div[@class='author']//a/text()")
         aloader.add_xpath("abstract","//div[@class='wxBaseinfo']//span[@id='ChDivSummary']/text()")
@@ -70,18 +71,20 @@ class ArticleSpider(scrapy.Spider):
         yield scrapy.Request(ref_url,callback=self.parseRef,headers=dict(Referer=response.url),
                     cb_kwargs=dict(loader=aloader,filename=filename))
 
-    def parseRef(self,response,loader,filename,references=None):
+    def parseRef(self,response,loader,filename,references=None,total_ref_num=0):
         """
         get info about references
         """
         if references is None:
             references = []
             logger.info(f"===Start Scraping references of {filename}")
+            total_ref_num = sum(map(int,response.xpath(".//span[@name='pcount']/text()").getall()))
+            loader.add_value("ref_num",total_ref_num)
         else:
             pagenumb = int(response.url[response.url.find("page")+5:])
             logger.info(f"======== Scraping references of {filename} at page {pagenumb}")
-        # from scrapy.shell import inspect_response
-        # inspect_response(response,self)
+            # from scrapy.shell import inspect_response
+            # inspect_response(response,self)
         for iessay in response.css("div.essayBox"):
             # number of essay of this type
             logger.info(f"======== Scraping essaybox")
@@ -95,14 +98,22 @@ class ArticleSpider(scrapy.Spider):
                     pagenumb = int(response.url[response.url.find("page")+5:])
                     if num > pagenumb*10:
                         newurl = response.url.replace(f"page={pagenumb}",f"page={pagenumb+1}")
-                        yield scrapy.Request(newurl,callback=self.parseRef,cb_kwargs=dict(loader=loader,filename=filename,references=references))
+                        yield scrapy.Request(newurl,callback=self.parseRef,cb_kwargs=
+                        dict(loader=loader,filename=filename,references=references,total_ref_num=total_ref_num))
                 else:
                     newurl=f"{response.url}&CurDBCode={self.DBCODE[reftype]}&page=2"
-                    yield scrapy.Request(newurl,callback=self.parseRef,cb_kwargs=dict(loader=loader,filename=filename,references=references))
+                    yield scrapy.Request(newurl,callback=self.parseRef,
+                    cb_kwargs=dict(loader=loader,filename=filename,references=references,total_ref_num=total_ref_num))
         
-        loader.add_value("references",references)
-        logger.info(f"===End Scraping references of {filename}")
-        yield loader.load_item()
+        if len(references) >= total_ref_num:
+            references = list(set(references))
+            logger.info(f"{filename}: Total number of reference is {total_ref_num}, Now We got {len(references)}")
+            loader.add_value("references",references)
+            logger.info(f"===End Scraping references of {filename}")
+            yield loader.load_item()
+        else:
+            logger.info(f"{filename}: Total number of reference is {total_ref_num}, Now We got {len(references)}")
+
 
     def cleanref(self,ref):
         '''
@@ -112,6 +123,6 @@ class ArticleSpider(scrapy.Spider):
         '''
         ref = list(map(lambda x:x.strip(),ref))
         ref = list(map(lambda x:x.replace("&nbsp","").replace("\r\n",""),ref))
-        pattern = re.compile("(\[\d\])")
+        pattern = re.compile("(\[\d*?\])")
         m = pattern.split(" ".join(ref))
         return list(zip(m[1::2],m[2::2]))

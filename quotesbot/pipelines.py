@@ -7,9 +7,7 @@
 import pymongo
 from quotesbot.utils import logger
 
-class QuotesbotPipeline(object):
-
-    collection_name = "quotes"
+class ArticlesPipeline(object):
 
     def __init__(self,mongo_uri, mongo_db):
         self.mongo_uri = mongo_uri
@@ -31,5 +29,17 @@ class QuotesbotPipeline(object):
 
     def process_item(self, item, spider):
         logger.info(f"Inserting file {item['filename']} into database")
-        self.db[self.collection_name].insert_one(dict(item))
+        collection_name = item['short_journal_name_en']
+        # check if the scrapy is correctly done
+        if "references" in item:
+            if len(item["references"]) == item["ref_num"]:
+                logger.info(f"{item['filename']} has {len(item['references'])} references in total")
+                item['done'] = True
+            else:
+                logger.info(f"We got {len(item['references'])}/{item['ref_num']} references of {item['filename']}")
+                item['done'] = False
+        else:
+            logger.info(f"No references of {item['filename']} is scrapied.")
+            item['done'] = False
+        self.db[collection_name].insert_one(dict(item))
         return item
