@@ -121,6 +121,7 @@ class RandomProxyMiddleware(object):
         _proxy = next(ips)[0]
         proxy = _proxy['http'] if 'http' in _proxy.keys() else _proxy['https']
         request.meta['proxy'] = proxy
+        logger.info(f"Adding proxy {proxy}")
         return None
 
 
@@ -178,6 +179,7 @@ class RetryWithProxyMiddleware(RetryMiddleware):
             _proxy = next(ips)[0]
             proxy = _proxy['http'] if 'http' in _proxy.keys() else _proxy['https']
             retryreq.meta['proxy'] = proxy
+            logger.info(f"Retrying with proxy: {proxy}")
             return retryreq
         else:
             stats.inc_value('retry/max_reached')

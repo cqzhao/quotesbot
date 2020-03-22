@@ -29,7 +29,7 @@ class ArticlesPipeline(object):
 
     def process_item(self, item, spider):
         logger.info(f"Inserting file {item['filename']} into database")
-        collection_name = item['short_journal_name_en']
+        collection_name = item['journal_code']
         # check if the scrapy is correctly done
         if "references" in item:
             if len(item["references"]) == item["ref_num"]:
@@ -41,5 +41,7 @@ class ArticlesPipeline(object):
         else:
             logger.info(f"No references of {item['filename']} is scrapied.")
             item['done'] = False
-        self.db[collection_name].insert_one(dict(item))
+        # insert new ones
+        # self.db[collection_name].insert_one(dict(item))
+        self.db[collection_name].update_one({"url":item['url'],"done":False},{"$set":dict(item)},True)
         return item

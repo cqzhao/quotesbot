@@ -74,7 +74,7 @@ ROBOTSTXT_OBEY = False
 # Configure a delay for requests for the same website (default: 0)
 # See http://scrapy.readthedocs.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
-DOWNLOAD_DELAY = 0.5
+DOWNLOAD_DELAY = 5
 # The download delay setting will honor only one of:
 #CONCURRENT_REQUESTS_PER_DOMAIN = 16
 #CONCURRENT_REQUESTS_PER_IP = 16
@@ -107,7 +107,7 @@ DEFAULT_REQUEST_HEADERS = {
 # See http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
 #    'quotesbot.middlewares.MyCustomDownloaderMiddleware': 543,
-   'quotesbot.middlewares.RandomProxyMiddleware': 543,
+#    'quotesbot.middlewares.RandomProxyMiddleware': 543,
    'quotesbot.middlewares.RandomUserAgentMiddleware': 544,
    'quotesbot.middlewares.RetryWithProxyMiddleware': 545,
 #    'scrapy_selenium.SeleniumMiddleware': 800
@@ -172,4 +172,16 @@ JOURNALCODE = {
     "辐射防护通讯":"DEFE",
     "中国核电":"ZGHD",
     "核电子学与探测技术":"HERE",
+}
+JOURNAL_EN_NAME = {
+    "原子能科学与技术" : "Atomic Energy Science and Technology",
+    "核动力工程" : "Nuclear Power Engineering",
+    "核技术": "Nuclear Technology",
+    "核安全": "Nuclear Safety",
+    "辐射防护":"Radiation Protection",
+    "核聚变与等离子体物理":"Nuclear Fusion and Plasma Physics",
+    "核科学与工程":"Nuclear Science and Technology",
+    "辐射防护通讯":"Radiation Protection Bulletin",
+    "中国核电":"China Nuclear Power",
+    "核电子学与探测技术":"Nuclear Electronics and Detection Technology",
 }

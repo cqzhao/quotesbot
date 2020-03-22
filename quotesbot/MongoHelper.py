@@ -13,7 +13,7 @@ class MongoHelper():
     def drop_db(self):
         self.client.drop_database(self.db)
 
-    def insert(self, article:ArticleItem):
+    def insert(self, article:Union[dict,ArticleItem]):
         if article:
             self.col.insert_one(dict(article))
 

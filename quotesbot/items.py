@@ -21,7 +21,7 @@ class ArticleItem(scrapy.Item):
     abstract = scrapy.Field()
     journal_name_ch = scrapy.Field()
     journal_name_en = scrapy.Field()
-    short_journal_name_en = scrapy.Field()
+    journal_code = scrapy.Field()
     filename = scrapy.Field()
     keywords = scrapy.Field()
     fenleihao = scrapy.Field()

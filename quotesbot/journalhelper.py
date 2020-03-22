@@ -8,27 +8,35 @@ import settings
 import logging
 import pymongo
 import time
+import json
 
 # 设置日志输出格式
-logging.basicConfig(level=logging.DEBUG,
-                    filename="journalhelper.log",
-                    format='[%(asctime)-15s] [%(levelname)8s] [%(name)10s ] - %(message)s (%(filename)s:%(lineno)s)',
-                    datefmt='%Y-%m-%d %T'
-                    )
 logger = logging.getLogger(__name__)
+logger.setLevel(level = logging.DEBUG)
+filehandler = logging.FileHandler("journalhelper.log")
+filehandler.setLevel(logging.DEBUG)
+formatter = logging.Formatter('[%(asctime)-15s] [%(levelname)8s] [%(name)10s ] - %(message)s (%(filename)s:%(lineno)s)', datefmt='%Y-%m-%d %T')
+filehandler.setFormatter(formatter)
+
+console = logging.StreamHandler()
+console.setLevel(logging.DEBUG)
+console.setFormatter(formatter)
+
+logger.addHandler(filehandler)
+logger.addHandler(console)
 
 class JournalHelper():
     BASE_URL = "http://navi.cnki.net/KNavi/JournalDetail?pcode=CJFD&pykm="
     def __init__(self,journalname=None):
         if journalname in settings.JOURNALCODE.keys():
-            self.journal_short_name = settings.JOURNALCODE[journalname]
+            self.journal_code = settings.JOURNALCODE[journalname]
         else:
-            self.journal_short_name = "YZJS"
+            self.journal_code = "YZJS"
             logger.warning(f"{journalname} doesn't exist in JOURNALCODE. Default 原子能科学与技术 is used.")
-        self.url = f"{self.BASE_URL}{self.journal_short_name}"
+        self.url = f"{self.BASE_URL}{self.journal_code}"
         self.allpapers = list()
         self.journalname = journalname
-        self.pattern = re.compile("filename=YZJS(.*?)&tableName")
+        self.pattern = re.compile("filename=(.*?)&tableName")
     
     def init_db(self):
         self.mongo_uri = settings.MONGO_URI 
@@ -40,52 +48,128 @@ class JournalHelper():
     def close_db(self):
         self.client.close()
     
-    def getall(self):
+    def get_year_volume(self,year="2020",volume=None):
         '''
-        get all article filename, stored in self.allpapers
+        get filename of specific year and specific volume,default all volumes.
         '''
+        articles = []
         driver = webdriver.Firefox()
-        driver.get(self.url)
-        WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,"//div[@class='page-list']")),"Can't load")
-        firstpage = Selector(text=driver.page_source)
-        page_num = len(firstpage.css("div.page-list").xpath(".//a[@href]").getall())
-        cur_page = 1
-        while(cur_page<=page_num):
-            # for one page
-            yearissuepage = driver.find_element_by_xpath("//div[@class='yearissuepage' and @style='']")
-            for iyear in yearissuepage.find_elements_by_xpath("./dl"):
-                iyear_name = iyear.get_property("id").split("_")[0]
-                iyear.click()
-                logger.debug(f"Click year {iyear_name}")
+        try:
+            driver.get(self.url)
+            WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,"//div[@class='page-list']")),"Can't load")
+            firstpage = Selector(text=driver.page_source)
+            divthisyear = firstpage.css("div.yearissuepage").xpath(f"./dl[@id='{year}_Year_Issue']/..")
+            if divthisyear.xpath("@style").get() != "":
+                #this div is not displayed
+                pageindex = int(divthisyear.xpath("@pageindex").get())
+                # click the page
+                pagelist = driver.find_element_by_xpath("//div[@class='page-list']")
+                thepage = pagelist.find_element_by_link_text(f"{pageindex+1}")
+                thepage.click()
+                logger.debug(f"Click page {pageindex+1}")
                 time.sleep(9)
-                WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,"//div[@class='yearissuepage' and @style='']//dd[@style='']")),"Can't load")
-                for ivol in iyear.find_elements_by_xpath("./dd/a"):
+                WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,"//div[@class='yearissuepage' and @style='']")),"Can't load")
+            yearissuepage = driver.find_element_by_xpath("//div[@class='yearissuepage' and @style='']")
+            theyear = yearissuepage.find_element_by_xpath(f"./dl[@id='{year}_Year_Issue']")
+            theyear.click()
+            logger.debug(f"Click year {year}")
+            time.sleep(9)
+            WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,"//div[@class='yearissuepage' and @style='']//dd[@style='']")),"Can't load")
+            # find the vol to click
+            if volume is None:
+                for ivol in theyear.find_elements_by_xpath("./dd/a"):
                     ivol_name = ivol.get_property("id")
                     ivol.click()
-                    logger.debug(f"Click year {iyear_name} vol {ivol_name}")
+                    logger.debug(f"Click year {year} vol {ivol_name}")
                     time.sleep(9)
                     WebDriverWait(driver,10).until(EC.presence_of_element_located((By.ID,"CataLogContent")),"Can't load")
                     page = Selector(text=driver.page_source)
                     hrefs = page.css("dd.clearfix").xpath("./span/a/@href").getall()
                     for ip in list(map(lambda x:self.pattern.search(x).group(1),hrefs)):
-                        logger.debug(f"Saving file {ip} of year {iyear_name} vol {ivol_name}")
-                        self.allpapers.append({
-                            "year":iyear_name,
+                        logger.debug(f"Saving file {ip} of year {year} vol {ivol_name}")
+                        articles.append({
+                            "year":year,
                             "vol":ivol_name,
                             "filename":ip,
-                            "journalname":self.journal_short_name,
+                            "journalcode":self.journal_code,
                         })
-            # click for next page
-            pagelist = driver.find_element_by_xpath("//div[@class='page-list']")
-            nextpage = pagelist.find_element_by_class_name("next")
-            nextpage.click()
-            logger.debug("Click next page")
-            time.sleep(9)
-            WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,"//div[@class='yearissuepage' and @style='']")),"Can't load")
-        driver.quit()
-        self.save()
+            else:
+                thevol = theyear.find_element_by_xpath(f"./dd/a[text()='No.{volume}']")
+                thevol.click()
+                logger.debug(f"Click year {year} vol {volume}")
+                time.sleep(9)
+                WebDriverWait(driver,10).until(EC.presence_of_element_located((By.ID,"CataLogContent")),"Can't load")
+                page = Selector(text=driver.page_source)
+                hrefs = page.css("dd.clearfix").xpath("./span/a/@href").getall()
+                for ip in list(map(lambda x:self.pattern.search(x).group(1),hrefs)):
+                    logger.debug(f"Saving file {ip} of year {year} vol {volume}")
+                    articles.append({
+                        "year":year,
+                        "vol":f"No.{volume}",
+                        "filename":ip,
+                        "journalcode":self.journal_code,
+                    })
+        finally:
+            driver.quit()
+            self.save(articles)
+
+
+    def getall(self):
+        '''
+        get all article filename, stored in self.allpapers
+        '''
+        driver = webdriver.Firefox()
+        try:
+            driver.get(self.url)
+            WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,"//div[@class='page-list']")),"Can't load")
+            firstpage = Selector(text=driver.page_source)
+            page_num = len(firstpage.css("div.page-list").xpath(".//a[@href]").getall())
+            cur_page = 1
+            while(cur_page<=page_num):
+                # for one page
+                yearissuepage = driver.find_element_by_xpath("//div[@class='yearissuepage' and @style='']")
+                for iyear in yearissuepage.find_elements_by_xpath("./dl"):
+                    iyear_name = iyear.get_property("id").split("_")[0]
+                    iyear.click()
+                    logger.debug(f"Click year {iyear_name}")
+                    time.sleep(9)
+                    WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,"//div[@class='yearissuepage' and @style='']//dd[@style='']")),"Can't load")
+                    for ivol in iyear.find_elements_by_xpath("./dd/a"):
+                        ivol_name = ivol.get_property("id")
+                        ivol.click()
+                        logger.debug(f"Click year {iyear_name} vol {ivol_name}")
+                        time.sleep(9)
+                        WebDriverWait(driver,10).until(EC.presence_of_element_located((By.ID,"CataLogContent")),"Can't load")
+                        page = Selector(text=driver.page_source)
+                        hrefs = page.css("dd.clearfix").xpath("./span/a/@href").getall()
+                        for ip in list(map(lambda x:self.pattern.search(x).group(1),hrefs)):
+                            logger.debug(f"Saving file {ip} of year {iyear_name} vol {ivol_name}")
+                            self.allpapers.append({
+                                "year":iyear_name,
+                                "vol":ivol_name,
+                                "filename":ip,
+                                "journalcode":self.journal_code,
+                            })
+                # save this page
+                self.save()
+                # click for next page
+                pagelist = driver.find_element_by_xpath("//div[@class='page-list']")
+                try:
+                    nextpage = pagelist.find_element_by_class_name("next")
+                    nextpage.click()
+                    logger.debug("Click next page")
+                    time.sleep(9)
+                    WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,"//div[@class='yearissuepage' and @style='']")),"Can't load")
+                except:
+                    print("No further pages")
+                finally:
+                    cur_page += 1
+        finally:
+            driver.quit()
+            # save all
+            self.save()
     
-    def save(self):
+    def save(self,papers=None):
         '''
         save self.allpapers into database
         '''
@@ -93,7 +177,7 @@ class JournalHelper():
         # newpapers = []
         # for ipaper in self.allpapers:
         #     #check if this paper exists
-        #     if self.col.find_one({"filename":ipaper['filename'],"journalname":ipaper['journalname']}):
+        #     if self.col.find_one({"filename":ipaper['filename'],"journalcode":ipaper['journalcode']}):
         #         # this has been inserted
         #         pass
         #     else:
@@ -102,14 +186,58 @@ class JournalHelper():
         
         # insert new papers
         count = 0
-        for ipaper in self.allpapers:
+        if papers is None:
+            papers = self.allpapers
+
+        for ipaper in papers:
             # if doesn't exist, it will be inserted
-            result = self.col.update_one({"filename":ipaper['filename'],"journalname":ipaper['journalname']},{'$set':ipaper},True)
+            result = self.col.update_one({"filename":ipaper['filename'],"journalcode":ipaper['journalcode']},{'$set':ipaper},True)
             if result.upserted_id:
                 count = count + 1
         logger.info(f"{count} papers are inserted into database")
         self.close_db()
+    
+    def file_to_scrapy(self,number=1000):
+        '''
+        get file which needs to be crawled. get new ones only by comparing database data.
+        default: get 1000 files.
+        '''
+        self.init_db()
+        self.col_compare = self.db[self.journal_code]
+        donefiles = self.col_compare.find({"done":True},{"_id":0,"filename":1})
+        donefiles = list(map(lambda x:x['filename'],donefiles))
+        newfiles = list()
+        count = 0
+        for item in self.col.find({"journalcode":self.journal_code},{"_id":0,"filename":1},batch_size=number):
+            if item['filename'] not in donefiles:
+                count += 1
+                newfiles.append(item['filename'])
+            if count > number:
+                break
+        self.close_db()
+
+        # allfiles = self.col.find({"journalcode":self.journal_code},{"_id":0,"filename":1})
+        # newfiles = set(allfiles) - set(donefiles)
+        with open(f"./jsons/{self.journal_code}.json",'w') as f:
+            json.dump({"newfiles":list(newfiles)},f)
+    def failed_file_to_scrapy(self,number=100):
+        '''
+        get file which had been crawled but failed.
+        '''
+        self.init_db()
+        self.col_compare = self.db[self.journal_code]
+        undone_files = list()
+        for item in self.col_compare.find({"done":False},{"_id":0,"filename":1},batch_size=number):
+            undone_files.append(item['filename'])
+
+        with open(f"./jsons/{self.journal_code}.json",'w') as f:
+            json.dump({"newfiles":undone_files},f)
+
+
 
 if __name__ == "__main__":
     journal = JournalHelper("原子能科学与技术")
-    journal.getall()
+    # journal.getall()
+    # journal.get_year_volume("1992","01")
+    # journal.file_to_scrapy(10)
+    journal.failed_file_to_scrapy()
