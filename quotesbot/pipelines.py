@@ -39,8 +39,12 @@ class ArticlesPipeline(object):
                 logger.info(f"We got {len(item['references'])}/{item['ref_num']} references of {item['filename']}")
                 item['done'] = False
         else:
-            logger.info(f"No references of {item['filename']} is scrapied.")
-            item['done'] = False
+            if item["ref_num"] ==0:
+                item['done'] = True
+                logger.info(f"{item['filename']} get no references.")
+            else:
+                logger.info(f"No references of {item['filename']} is scrapied.")
+                item['done'] = False
         # insert new ones
         # self.db[collection_name].insert_one(dict(item))
         self.db[collection_name].update_one({"url":item['url'],"done":False},{"$set":dict(item)},True)
