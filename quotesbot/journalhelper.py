@@ -253,25 +253,26 @@ class JournalHelper():
 
 
 if __name__ == "__main__":
-    journal = JournalHelper("原子能科学与技术")
+    # journal = JournalHelper("原子能科学与技术")
     # journal.getall()
     # journal.get_year_volume("1992","01")
     # journal.file_to_scrapy(100000)
-    journal.failed_file_to_scrapy()
-    # journals = [
-    # # "核动力工程", 
-    # # "核技术",
-    # # "核安全",
-    # # "辐射防护",
-    # # "核聚变与等离子体物理",
-    # "核科学与工程",
-    # # "辐射防护通讯",
-    # # "中国核电",
-    # "核电子学与探测技术",
-    # ]
-    # for ij in journals:
-    #     journal = JournalHelper(ij)
-    #     journal.getall()
+    # journal.failed_file_to_scrapy()
+    journals = [
+    "核动力工程", 
+    "核技术",
+    # "核安全",
+    "辐射防护",
+    # "核聚变与等离子体物理",
+    "核科学与工程",
+    # "辐射防护通讯",
+    # "中国核电",
+    "核电子学与探测技术",
+    ]
+    for ij in journals:
+        journal = JournalHelper(ij)
+        # journal.getall()
+        journal.file_to_scrapy(100000)
     # journal = JournalHelper("核动力工程")
     # years =[f"{iyear}" for iyear in range(1983,1979,-1)]
     # journal.get_year_volume(years)
