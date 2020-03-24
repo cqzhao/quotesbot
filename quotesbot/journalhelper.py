@@ -227,8 +227,16 @@ class JournalHelper():
         self.init_db()
         self.col_compare = self.db[self.journal_code]
         undone_files = list()
+        count = 0
+        done_num = self.col_compare.find({"done":True}).count()
+        total_num = self.col_compare.find().count() 
+        logger.info(f"For {self.journalname}, {done_num}/{total_num} has finished!")
         for item in self.col_compare.find({"done":False},{"_id":0,"filename":1},batch_size=number):
             undone_files.append(item['filename'])
+            count += 1
+            if count > number:
+                break
+        self.close_db()
 
         with open(f"./jsons/{self.journal_code}.json",'w') as f:
             json.dump({"newfiles":undone_files},f)
@@ -239,5 +247,5 @@ if __name__ == "__main__":
     journal = JournalHelper("原子能科学与技术")
     # journal.getall()
     # journal.get_year_volume("1992","01")
-    # journal.file_to_scrapy(10)
+    # journal.file_to_scrapy(10000)
     journal.failed_file_to_scrapy()
