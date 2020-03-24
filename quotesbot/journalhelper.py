@@ -52,66 +52,73 @@ class JournalHelper():
         '''
         get filename of specific year and specific volume,default all volumes.
         '''
-        articles = []
         driver = webdriver.Firefox()
+        if isinstance(year,list):
+            allyears = year
+        else:
+            allyears = [year]
         try:
-            driver.get(self.url)
-            WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,"//div[@class='page-list']")),"Can't load")
-            firstpage = Selector(text=driver.page_source)
-            divthisyear = firstpage.css("div.yearissuepage").xpath(f"./dl[@id='{year}_Year_Issue']/..")
-            if divthisyear.xpath("@style").get() != "":
-                #this div is not displayed
-                pageindex = int(divthisyear.xpath("@pageindex").get())
-                # click the page
-                pagelist = driver.find_element_by_xpath("//div[@class='page-list']")
-                thepage = pagelist.find_element_by_link_text(f"{pageindex+1}")
-                thepage.click()
-                logger.debug(f"Click page {pageindex+1}")
+            for iyear in allyears:
+                articles = []
+                driver.get(self.url)
+                WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,"//div[@class='page-list']")),"Can't load page-list")
+                time.sleep(5)
+                firstpage = Selector(text=driver.page_source)
+                divthisyear = firstpage.css("div.yearissuepage").xpath(f"./dl[@id='{iyear}_Year_Issue']/..")
+                if divthisyear.xpath("@style").get() != "":
+                    #this div is not displayed
+                    pageindex = int(divthisyear.xpath("@pageindex").get())
+                    # click the page
+                    pagelist = driver.find_element_by_xpath("//div[@class='page-list']")
+                    thepage = pagelist.find_element_by_link_text(f"{pageindex+1}")
+                    thepage.click()
+                    logger.debug(f"Click page {pageindex+1}")
+                    time.sleep(9)
+                    WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,"//div[@class='yearissuepage' and @style='']")),"Can't load")
+                yearissuepage = driver.find_element_by_xpath("//div[@class='yearissuepage' and @style='']")
+                WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,f"//dl[@id='{iyear}_Year_Issue']")),f"Can't load {iyear}_Year_Issue")
+                theyear = yearissuepage.find_element_by_xpath(f"./dl[@id='{iyear}_Year_Issue']")
+                theyear.click()
+                logger.debug(f"Click year {iyear}")
                 time.sleep(9)
-                WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,"//div[@class='yearissuepage' and @style='']")),"Can't load")
-            yearissuepage = driver.find_element_by_xpath("//div[@class='yearissuepage' and @style='']")
-            theyear = yearissuepage.find_element_by_xpath(f"./dl[@id='{year}_Year_Issue']")
-            theyear.click()
-            logger.debug(f"Click year {year}")
-            time.sleep(9)
-            WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,"//div[@class='yearissuepage' and @style='']//dd[@style='']")),"Can't load")
-            # find the vol to click
-            if volume is None:
-                for ivol in theyear.find_elements_by_xpath("./dd/a"):
-                    ivol_name = ivol.get_property("id")
-                    ivol.click()
-                    logger.debug(f"Click year {year} vol {ivol_name}")
+                WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,"//div[@class='yearissuepage' and @style='']//dd[@style='display: block;' or @style='']")),"Can't load")
+                # find the vol to click
+                if volume is None:
+                    for ivol in theyear.find_elements_by_xpath("./dd/a"):
+                        ivol_name = ivol.get_property("id")
+                        ivol.click()
+                        logger.debug(f"Click year {iyear} vol {ivol_name}")
+                        time.sleep(9)
+                        WebDriverWait(driver,10).until(EC.presence_of_element_located((By.ID,"CataLogContent")),"Can't load")
+                        page = Selector(text=driver.page_source)
+                        hrefs = page.css("dd.clearfix").xpath("./span/a/@href").getall()
+                        for ip in list(map(lambda x:self.pattern.search(x).group(1),hrefs)):
+                            logger.debug(f"Saving file {ip} of year {iyear} vol {ivol_name}")
+                            articles.append({
+                                "year":year,
+                                "vol":ivol_name,
+                                "filename":ip,
+                                "journalcode":self.journal_code,
+                            })
+                else:
+                    thevol = theyear.find_element_by_xpath(f"./dd/a[text()='No.{volume}']")
+                    thevol.click()
+                    logger.debug(f"Click year {iyear} vol {volume}")
                     time.sleep(9)
                     WebDriverWait(driver,10).until(EC.presence_of_element_located((By.ID,"CataLogContent")),"Can't load")
                     page = Selector(text=driver.page_source)
                     hrefs = page.css("dd.clearfix").xpath("./span/a/@href").getall()
                     for ip in list(map(lambda x:self.pattern.search(x).group(1),hrefs)):
-                        logger.debug(f"Saving file {ip} of year {year} vol {ivol_name}")
+                        logger.debug(f"Saving file {ip} of year {iyear} vol {volume}")
                         articles.append({
                             "year":year,
-                            "vol":ivol_name,
+                            "vol":f"No.{volume}",
                             "filename":ip,
                             "journalcode":self.journal_code,
                         })
-            else:
-                thevol = theyear.find_element_by_xpath(f"./dd/a[text()='No.{volume}']")
-                thevol.click()
-                logger.debug(f"Click year {year} vol {volume}")
-                time.sleep(9)
-                WebDriverWait(driver,10).until(EC.presence_of_element_located((By.ID,"CataLogContent")),"Can't load")
-                page = Selector(text=driver.page_source)
-                hrefs = page.css("dd.clearfix").xpath("./span/a/@href").getall()
-                for ip in list(map(lambda x:self.pattern.search(x).group(1),hrefs)):
-                    logger.debug(f"Saving file {ip} of year {year} vol {volume}")
-                    articles.append({
-                        "year":year,
-                        "vol":f"No.{volume}",
-                        "filename":ip,
-                        "journalcode":self.journal_code,
-                    })
+                self.save(articles)
         finally:
             driver.quit()
-            self.save(articles)
 
 
     def getall(self):
@@ -133,7 +140,7 @@ class JournalHelper():
                     iyear.click()
                     logger.debug(f"Click year {iyear_name}")
                     time.sleep(9)
-                    WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,"//div[@class='yearissuepage' and @style='']//dd[@style='']")),"Can't load")
+                    WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,"//div[@class='yearissuepage' and @style='']//dd[@style='' or @style='display: block;']")),"Can't load")
                     for ivol in iyear.find_elements_by_xpath("./dd/a"):
                         ivol_name = ivol.get_property("id")
                         ivol.click()
@@ -194,7 +201,7 @@ class JournalHelper():
             result = self.col.update_one({"filename":ipaper['filename'],"journalcode":ipaper['journalcode']},{'$set':ipaper},True)
             if result.upserted_id:
                 count = count + 1
-        logger.info(f"{count} papers are inserted into database")
+        logger.info(f"{self.journalname}: {count} papers are inserted into database")
         self.close_db()
     
     def file_to_scrapy(self,number=1000):
@@ -215,11 +222,13 @@ class JournalHelper():
             if count > number:
                 break
         self.close_db()
+        logger.info(f"For {self.journalname}, {count} new files will be crawled!")
 
         # allfiles = self.col.find({"journalcode":self.journal_code},{"_id":0,"filename":1})
         # newfiles = set(allfiles) - set(donefiles)
         with open(f"./jsons/{self.journal_code}.json",'w') as f:
             json.dump({"newfiles":list(newfiles)},f)
+
     def failed_file_to_scrapy(self,number=100):
         '''
         get file which had been crawled but failed.
@@ -228,8 +237,8 @@ class JournalHelper():
         self.col_compare = self.db[self.journal_code]
         undone_files = list()
         count = 0
-        done_num = self.col_compare.find({"done":True}).count()
-        total_num = self.col_compare.find().count() 
+        done_num = self.col_compare.count_documents({"done":True})
+        total_num = self.col_compare.count_documents({})
         logger.info(f"For {self.journalname}, {done_num}/{total_num} has finished!")
         for item in self.col_compare.find({"done":False},{"_id":0,"filename":1},batch_size=number):
             undone_files.append(item['filename'])
@@ -247,5 +256,23 @@ if __name__ == "__main__":
     journal = JournalHelper("原子能科学与技术")
     # journal.getall()
     # journal.get_year_volume("1992","01")
-    # journal.file_to_scrapy(10000)
+    # journal.file_to_scrapy(100000)
     journal.failed_file_to_scrapy()
+    # journals = [
+    # # "核动力工程", 
+    # # "核技术",
+    # # "核安全",
+    # # "辐射防护",
+    # # "核聚变与等离子体物理",
+    # "核科学与工程",
+    # # "辐射防护通讯",
+    # # "中国核电",
+    # "核电子学与探测技术",
+    # ]
+    # for ij in journals:
+    #     journal = JournalHelper(ij)
+    #     journal.getall()
+    # journal = JournalHelper("核动力工程")
+    # years =[f"{iyear}" for iyear in range(1983,1979,-1)]
+    # journal.get_year_volume(years)
+

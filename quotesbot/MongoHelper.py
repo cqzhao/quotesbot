@@ -27,10 +27,13 @@ class MongoHelper():
     def update(self, conditions: dict=None, value: Union[dict,ArticleItem]=None):
         # update({"UserName":"libing"},{"$set":{"Email":"libing@126.com","Password":"123"}})
         if conditions and value:
-            self.col.update(conditions, {"$set": value})
-            return {'updateNum': 'ok'}
+            result = self.col.update_many(conditions, {"$set": value})
+            return {
+                'updateStatus': 'ok',
+                'matchedCount':result.matched_count,
+                'modifiedCount':result.modified_count}
         else:
-            return {'updateNum': 'fail'}
+            return {'updateStatus': 'fail'}
     
 
     def url_in_database(self,url: str) -> bool:
@@ -69,12 +72,11 @@ class MongoHelper():
 
 if __name__ == '__main__':
     # import MongoHelper as SqlHelper
-    sqlhelper = MongoHelper("test")
-    article = ArticleItem(url="http://test",title="测试一下")
-    sqlhelper.insert(article)
-    for i in sqlhelper.col.find():
-        print(i)
-    print(sqlhelper.url_in_database("http://test"))
+    sqlhelper = MongoHelper("YZJS")
+    condition = {"ref_num":0,"done":False}
+    value = {"done":True}
+    status = sqlhelper.update(condition,value)
+    print(status)
     # sqlhelper.init_db()
     # # print  sqlhelper.select(None,{'types':u'1'})
     # items= sqlhelper.proxys.find({'types':0})

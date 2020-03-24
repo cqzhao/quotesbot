@@ -20,5 +20,5 @@ class ArticleLoader(ItemLoader):
     download_num_in = MapCompose(int)
     keywords_out = MapCompose(clearnstrip)
     references_out = MapCompose()
-    pages_in = MapCompose(int)
+    # pages_in = MapCompose(int)
 
